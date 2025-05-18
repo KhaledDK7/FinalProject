@@ -37,6 +37,12 @@ def display_books(books):
         due_date = book['due_date'] if book['due_date'] else 'N/A'
         borrower = book['borrower'] if book['borrower'] else 'N/A'
         print(f"{book['title'][:28]:<30} {book['author'][:18]:<20} {book['isbn']:<15} "
-              f"{book['status']:<12} {due_date:<12} {borrower:<10}")        
+              f"{book['status']:<12} {due_date:<12} {borrower:<10}") 
         
-        #Add Main program loop
+        #Fixed the load_books() function
+        #mplemented the save_books() function
+        #Added display_books() for user-friendly output
+        #Ensured proper CSV file creation with all necessary columns
+
+
+        #Add Main program loop , Create a basic menu system in main()
