@@ -1,0 +1,11 @@
+title,author,isbn,status,due_date,borrower
+The Catcher in the Rye,J.D. Salinger,9780316769488,available,,
+Brave New World,Aldous Huxley,9780060850524,checked out,2023-11-20,Bob
+The Alchemist,Paulo Coelho,9780062315007,available,,
+The Road,Cormac McCarthy,9780307387899,available,,
+The Silent Patient,Alex Michaelides,9781250301697,checked out,2023-11-25,Carol
+Atomic Habits,James Clear,9780735211292,available,,
+Sapiens,Yuval Noah Harari,9780062316110,available,,
+The Midnight Library,Matt Haig,9780525559474,available,,
+Educated,Tara Westover,9780399590504,checked out,2023-12-05,Dave
+Project Hail Mary,Andy Weir,9780593135204,available,,
