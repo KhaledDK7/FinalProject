@@ -38,11 +38,25 @@ def display_books(books):
         borrower = book['borrower'] if book['borrower'] else 'N/A'
         print(f"{book['title'][:28]:<30} {book['author'][:18]:<20} {book['isbn']:<15} "
               f"{book['status']:<12} {due_date:<12} {borrower:<10}") 
+def main():
+#Main program loop.
+    books = load_books()
+    print("Welcome to the Library Book Manager")
+    
+    while True:
+        print("\nOptions:")
+        print("1. View all books")
+        print("2. Exit")
         
-        #Fixed the load_books() function
-        #mplemented the save_books() function
-        #Added display_books() for user-friendly output
-        #Ensured proper CSV file creation with all necessary columns
+        choice = input("Enter your choice: ")
+        
+        if choice == "1":
+            display_books(books)
+        elif choice == "2":
+            print("Goodbye!")
+            break
+        else:
+            print("Invalid choice. Please try again.")
 
-
-        #Add Main program loop , Create a basic menu system in main()
+if __name__ == "__main__":
+    main()
