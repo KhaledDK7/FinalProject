@@ -39,20 +39,23 @@ def display_books(books):
         print(f"{book['title'][:28]:<30} {book['author'][:18]:<20} {book['isbn']:<15} "
               f"{book['status']:<12} {due_date:<12} {borrower:<10}") 
 def main():
-#Main program loop.
+    #Main program loop
     books = load_books()
     print("Welcome to the Library Book Manager")
     
     while True:
         print("\nOptions:")
         print("1. View all books")
-        print("2. Exit")
+        print("2. Search books")
+        print("3. Exit")
         
         choice = input("Enter your choice: ")
         
         if choice == "1":
             display_books(books)
         elif choice == "2":
+            search_books(books)
+        elif choice == "3":
             print("Goodbye!")
             break
         else:
@@ -60,3 +63,34 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+def search_books(books):
+    #Search books by title, author, or ISBN.
+    print("\nSearch Options:")
+    print("1. By Title")
+    print("2. By Author")
+    print("3. By ISBN")
+    
+    choice = input("Choose search type (1-3): ").strip()
+    term = input("Enter search term: ").lower()
+    
+    results = []
+    for book in books:
+        if choice == "1" and term in book['title'].lower():
+            results.append(book)
+        elif choice == "2" and term in book['author'].lower():
+            results.append(book)
+        elif choice == "3" and term in book['isbn'].lower():
+            results.append(book)
+    
+    if results:
+        print(f"\nFound {len(results)} matching book(s):")
+        display_books(results)
+    else:
+        print("No matching books found.")
+
+#Implemented search_books() to filter by title, author, or ISBN
+#Added menu option for searching
+#Displays formatted results using existing display_books()
+#Handles no-results case gracefully
+#next step i will add check-out/return system (update status, due_date, borrower)
