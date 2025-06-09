@@ -1,6 +1,6 @@
 import csv
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
 DATA_FILE = "library_books.csv"
 
@@ -27,19 +27,33 @@ def save_books(books):
         writer.writeheader()
         writer.writerows(books)
 def display_books(books):
-
-    #Display books in a formatted table.
+    #Display books with overdue highlighting.
     print("\nCurrent Library Inventory:")
     print(f"{'Title':<30} {'Author':<20} {'ISBN':<15} {'Status':<12} {'Due Date':<12} {'Borrower':<10}")
     print("-" * 100)
-
+    
+    today = datetime.now().date()
+    
     for book in books:
-        due_date = book['due_date'] if book['due_date'] else 'N/A'
-        borrower = book['borrower'] if book['borrower'] else 'N/A'
-        print(f"{book['title'][:28]:<30} {book['author'][:18]:<20} {book['isbn']:<15} "
-              f"{book['status']:<12} {due_date:<12} {borrower:<10}") 
+        due_date_str = book['due_date']
+        status = book['status']
+        borrower = book['borrower'] or 'N/A'
+        
+        # Check if book is overdue
+        is_overdue = False
+        if status == 'checked out' and due_date_str:
+            due_date = datetime.strptime(due_date_str, '%Y-%m-%d').date()
+            is_overdue = due_date < today
+        
+        # Format display with color/emphasis for overdue books
+        title = book['title'][:28]
+        if is_overdue:
+            title = f"⚠️ {title}"  # Or use color if supported
+            status = "OVERDUE"
+        
+        print(f"{title:<30} {book['author'][:18]:<20} {book['isbn']:<15} "
+              f"{status:<12} {due_date_str or 'N/A':<12} {borrower:<10}")
 def main():
-    #Main Program Loop
     books = load_books()
     print("Welcome to the Library Book Manager")
     
@@ -50,7 +64,8 @@ def main():
         print("3. Check out a book")
         print("4. Return a book")
         print("5. Add new book")
-        print("6. Exit")
+        print("6. View overdue books")
+        print("7. Exit")
         
         choice = input("Enter your choice: ")
         
@@ -65,6 +80,8 @@ def main():
         elif choice == "5":
             add_new_book(books)
         elif choice == "6":
+            check_overdue_books(books)
+        elif choice == "7":
             print("Goodbye!")
             break
         else:
@@ -173,3 +190,19 @@ def add_new_book(books):
     books.append(new_book)
     save_books(books)
     print(f"Successfully added '{title}' to the library.")
+
+def check_overdue_books(books):
+    #Display only overdue books.
+    today = datetime.now().date()
+    overdue_books = [
+        book for book in books
+        if book['status'] == 'checked out'
+        and book['due_date']
+        and datetime.strptime(book['due_date'], '%Y-%m-%d').date() < today
+    ]
+    
+    if overdue_books:
+        print("\nOverdue Books:")
+        display_books(overdue_books)
+    else:
+        print("No overdue books found.")
