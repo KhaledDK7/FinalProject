@@ -39,7 +39,7 @@ def display_books(books):
         print(f"{book['title'][:28]:<30} {book['author'][:18]:<20} {book['isbn']:<15} "
               f"{book['status']:<12} {due_date:<12} {borrower:<10}") 
 def main():
-    #Main program loop
+    #Main Program loop
     books = load_books()
     print("Welcome to the Library Book Manager")
     
@@ -47,7 +47,9 @@ def main():
         print("\nOptions:")
         print("1. View all books")
         print("2. Search books")
-        print("3. Exit")
+        print("3. Check out a book")
+        print("4. Return a book")
+        print("5. Exit")
         
         choice = input("Enter your choice: ")
         
@@ -56,6 +58,10 @@ def main():
         elif choice == "2":
             search_books(books)
         elif choice == "3":
+            check_out_book(books)
+        elif choice == "4":
+            return_book(books)
+        elif choice == "5":
             print("Goodbye!")
             break
         else:
@@ -89,8 +95,44 @@ def search_books(books):
     else:
         print("No matching books found.")
 
-#Implemented search_books() to filter by title, author, or ISBN
-#Added menu option for searching
-#Displays formatted results using existing display_books()
-#Handles no-results case gracefully
-#next step i will add check-out/return system (update status, due_date, borrower)
+from datetime import datetime, timedelta
+
+def check_out_book(books):
+    #Check out a book by ISBN and update its status.
+    display_books(books)
+    isbn = input("\nEnter ISBN of the book to check out: ").strip()
+    borrower = input("Enter borrower name: ").strip()
+    
+    for book in books:
+        if book['isbn'] == isbn:
+            if book['status'] == 'available':
+                book['status'] = 'checked out'
+                book['due_date'] = (datetime.now() + timedelta(days=14)).strftime('%Y-%m-%d')
+                book['borrower'] = borrower
+                save_books(books)
+                print(f"Successfully checked out '{book['title']}' to {borrower}.")
+            else:
+                print("Book is already checked out.")
+            return
+    
+    print("Book not found.")
+
+def return_book(books):
+    #Return a book by ISBN and update its status.
+    display_books([b for b in books if b['status'] == 'checked out'])
+    if not any(b['status'] == 'checked out' for b in books):
+        print("No books are currently checked out.")
+        return
+    
+    isbn = input("\nEnter ISBN of the book to return: ").strip()
+    
+    for book in books:
+        if book['isbn'] == isbn and book['status'] == 'checked out':
+            book['status'] = 'available'
+            book['due_date'] = ''
+            book['borrower'] = ''
+            save_books(books)
+            print(f"Successfully returned '{book['title']}'.")
+            return
+    
+    print("Book not found or already available.")
