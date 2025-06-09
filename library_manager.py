@@ -1,6 +1,7 @@
 import csv
 import os
 from datetime import datetime, timedelta
+from collections import defaultdict
 
 DATA_FILE = "library_books.csv"
 
@@ -55,21 +56,24 @@ def display_books(books):
               f"{status:<12} {due_date_str or 'N/A':<12} {borrower:<10}")
 def main():
     books = load_books()
-    print("Welcome to the Library Book Manager")
+    print("\n" + "="*50)
+    print("LIBRARY BOOK MANAGER".center(50))
+    print("="*50)
     
     while True:
-        print("\nOptions:")
-        print("1. View all books")
-        print("2. Search books")
-        print("3. Check out a book")
-        print("4. Return a book")
-        print("5. Add new book")
-        print("6. View overdue books")
-        print("7. Edit book details")
-        print("8. Delete book")
-        print("9. Exit")
+        print("\nMAIN MENU:")
+        print("1. 📖 View All Books")
+        print("2. 🔍 Search Books")
+        print("3. 📝 Check Out Book")
+        print("4. ↩️ Return Book")
+        print("5. ➕ Add New Book")
+        print("6. ⚠️ View Overdue Books")
+        print("7. ✏️ Edit Book")
+        print("8. ❌ Delete Book")
+        print("9. 📊 Generate Reports")
+        print("0. 🚪 Exit")
         
-        choice = input("Enter your choice: ")
+        choice = input("\nEnter your choice (0-9): ").strip()
         
         if choice == "1":
             display_books(books)
@@ -88,7 +92,9 @@ def main():
         elif choice == "8":
             delete_book(books)
         elif choice == "9":
-            print("Goodbye!")
+            generate_report(books)
+        elif choice == "0":
+            print("\nThank you for using the Library Book Manager!")
             break
         else:
             print("Invalid choice. Please try again.")
@@ -198,18 +204,25 @@ def add_new_book(books):
     print(f"Successfully added '{title}' to the library.")
 
 def check_overdue_books(books):
-    #Display only overdue books.
+    #Display overdue books with fine calculations.
     today = datetime.now().date()
-    overdue_books = [
-        book for book in books
-        if book['status'] == 'checked out'
-        and book['due_date']
-        and datetime.strptime(book['due_date'], '%Y-%m-%d').date() < today
-    ]
+    overdue_books = []
+    total_fines = 0.0
+    
+    for book in books:
+        if book['status'] == 'checked out' and book['due_date']:
+            due_date = datetime.strptime(book['due_date'], '%Y-%m-%d').date()
+            if due_date < today:
+                days_overdue = (today - due_date).days
+                fine = days_overdue * 0.50  # $0.50 per day
+                total_fines += fine
+                book['fine'] = f"${fine:.2f}"
+                overdue_books.append(book)
     
     if overdue_books:
-        print("\nOverdue Books:")
+        print("\nOverdue Books (Fines Calculated at $0.50/day):")
         display_books(overdue_books)
+        print(f"\nTotal Fines Due: ${total_fines:.2f}")
     else:
         print("No overdue books found.")
 
@@ -264,3 +277,29 @@ def delete_book(books):
             return
     
     print("Book not found.")
+
+def generate_report(books):
+    #Generate inventory and overdue reports.
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+    
+    # Inventory Report
+    with open(f"library_inventory_{timestamp}.csv", 'w', newline='') as f:
+        writer = csv.DictWriter(f, fieldnames=books[0].keys())
+        writer.writeheader()
+        writer.writerows(books)
+    
+    # Overdue Report
+    overdue_books = [
+        book for book in books 
+        if book['status'] == 'checked out' 
+        and book['due_date']
+        and datetime.strptime(book['due_date'], '%Y-%m-%d').date() < datetime.now().date()
+    ]
+    
+    if overdue_books:
+        with open(f"overdue_books_{timestamp}.csv", 'w', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=overdue_books[0].keys())
+            writer.writeheader()
+            writer.writerows(overdue_books)
+    
+    print(f"Generated: inventory and {'overdue' if overdue_books else 'no overdue'} reports")
