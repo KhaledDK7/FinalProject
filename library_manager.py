@@ -65,7 +65,9 @@ def main():
         print("4. Return a book")
         print("5. Add new book")
         print("6. View overdue books")
-        print("7. Exit")
+        print("7. Edit book details")
+        print("8. Delete book")
+        print("9. Exit")
         
         choice = input("Enter your choice: ")
         
@@ -82,6 +84,10 @@ def main():
         elif choice == "6":
             check_overdue_books(books)
         elif choice == "7":
+            edit_book(books)
+        elif choice == "8":
+            delete_book(books)
+        elif choice == "9":
             print("Goodbye!")
             break
         else:
@@ -206,3 +212,55 @@ def check_overdue_books(books):
         display_books(overdue_books)
     else:
         print("No overdue books found.")
+
+def edit_book(books):
+    #Edit an existing book's details.
+    display_books(books)
+    isbn = input("\nEnter ISBN of the book to edit: ").strip()
+    
+    for book in books:
+        if book['isbn'] == isbn:
+            print(f"\nEditing: {book['title']}")
+            print("Leave field blank to keep current value")
+            
+            new_title = input(f"Title [{book['title']}]: ").strip()
+            new_author = input(f"Author [{book['author']}]: ").strip()
+            new_isbn = input(f"ISBN [{book['isbn']}]: ").strip()
+            
+            if new_title:
+                book['title'] = new_title
+            if new_author:
+                book['author'] = new_author
+            if new_isbn:
+                if len(new_isbn) != 13 or not new_isbn.isdigit():
+                    print("Error: ISBN must be 13 digits. Not updated.")
+                elif any(b['isbn'] == new_isbn for b in books if b != book):
+                    print("Error: ISBN already exists. Not updated.")
+                else:
+                    book['isbn'] = new_isbn
+            
+            save_books(books)
+            print("Book updated successfully.")
+            return
+    
+    print("Book not found.")
+
+def delete_book(books):
+    #Remove a book from the library.
+    display_books(books)
+    isbn = input("\nEnter ISBN of the book to delete: ").strip()
+    
+    for i, book in enumerate(books):
+        if book['isbn'] == isbn:
+            if book['status'] == 'checked out':
+                print("Cannot delete: Book is currently checked out.")
+                return
+            
+            confirm = input(f"Delete '{book['title']}'? (y/n): ").lower()
+            if confirm == 'y':
+                del books[i]
+                save_books(books)
+                print("Book deleted successfully.")
+            return
+    
+    print("Book not found.")
