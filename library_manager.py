@@ -39,7 +39,7 @@ def display_books(books):
         print(f"{book['title'][:28]:<30} {book['author'][:18]:<20} {book['isbn']:<15} "
               f"{book['status']:<12} {due_date:<12} {borrower:<10}") 
 def main():
-    #Main Program loop
+    #Main Program Loop
     books = load_books()
     print("Welcome to the Library Book Manager")
     
@@ -49,7 +49,8 @@ def main():
         print("2. Search books")
         print("3. Check out a book")
         print("4. Return a book")
-        print("5. Exit")
+        print("5. Add new book")
+        print("6. Exit")
         
         choice = input("Enter your choice: ")
         
@@ -62,6 +63,8 @@ def main():
         elif choice == "4":
             return_book(books)
         elif choice == "5":
+            add_new_book(books)
+        elif choice == "6":
             print("Goodbye!")
             break
         else:
@@ -136,3 +139,37 @@ def return_book(books):
             return
     
     print("Book not found or already available.")
+
+def add_new_book(books):
+    #Add a new book to the library inventory.
+    print("\nAdd New Book")
+    title = input("Enter book title: ").strip()
+    author = input("Enter author name: ").strip()
+    isbn = input("Enter ISBN (13 digits): ").strip()
+    
+    # Basic validation
+    if not title or not author:
+        print("Error: Title and author cannot be empty.")
+        return
+    
+    if len(isbn) != 13 or not isbn.isdigit():
+        print("Error: ISBN must be 13 digits.")
+        return
+    
+    # Check for duplicate ISBN
+    if any(book['isbn'] == isbn for book in books):
+        print("Error: A book with this ISBN already exists.")
+        return
+    
+    new_book = {
+        'title': title,
+        'author': author,
+        'isbn': isbn,
+        'status': 'available',
+        'due_date': '',
+        'borrower': ''
+    }
+    
+    books.append(new_book)
+    save_books(books)
+    print(f"Successfully added '{title}' to the library.")
