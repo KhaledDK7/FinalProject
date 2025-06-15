@@ -6,6 +6,11 @@ from collections import defaultdict
 DATA_FILE = "library_books.csv"
 
 def load_books():
+    """
+    Load book data from a CSV file. If the file does not exist, create it with headers.
+    Returns:
+        list: A list of dictionaries representing the books.
+    """
     books = []
     if not os.path.exists(DATA_FILE):
         with open(DATA_FILE, 'w', newline='') as file:
@@ -20,6 +25,12 @@ def load_books():
     return books
 
 def save_books(books):
+    """
+    Save the list of books to the CSV file.
+
+    Args:
+        books (list): The list of books to save.
+    """
     with open(DATA_FILE, 'w', newline='') as file:
         fieldnames = ["title", "author", "isbn", "status", "due_date", "borrower"]
         writer = csv.DictWriter(file, fieldnames=fieldnames)
@@ -27,6 +38,12 @@ def save_books(books):
         writer.writerows(books)
 
 def display_books(books):
+    """
+    Display the list of books in a formatted table. Marks overdue books with a warning symbol.
+    
+    Args:
+        books (list): The list of books to display.
+    """
     print("\nCurrent Library Inventory:")
     print(f"{'Title':<30} {'Author':<20} {'ISBN':<15} {'Status':<12} {'Due Date':<12} {'Borrower':<10}")
     print("-" * 100)
@@ -52,6 +69,12 @@ def display_books(books):
               f"{status:<12} {due_date_str or 'N/A':<12} {borrower:<10}")
 
 def search_books(books):
+    """
+    Search for books by title, author, or ISBN.
+
+    Args:
+        books (list): The list of books to search within.
+    """
     print("\nSearch Options:")
     print("1. By Title")
     print("2. By Author")
@@ -76,6 +99,12 @@ def search_books(books):
         print("No matching books found.")
 
 def check_out_book(books):
+    """
+    Check out a book to a borrower and assign a due date.
+
+    Args:
+        books (list): The list of books.
+    """
     display_books(books)
     isbn = input("\nEnter ISBN of the book to check out: ").strip()
     borrower = input("Enter borrower name: ").strip()
@@ -95,6 +124,12 @@ def check_out_book(books):
     print("Book not found.")
 
 def return_book(books):
+    """
+    Return a checked-out book and mark it as available.
+
+    Args:
+        books (list): The list of books.
+    """
     checked_out = [b for b in books if b['status'] == 'checked out']
     if not checked_out:
         print("No books are currently checked out.")
@@ -115,6 +150,12 @@ def return_book(books):
     print("Book not found or already available.")
 
 def add_new_book(books):
+    """
+    Add a new book to the library after validating input.
+
+    Args:
+        books (list): The current list of books.
+    """
     print("\nAdd New Book")
     title = input("Enter book title: ").strip()
     author = input("Enter author name: ").strip()
@@ -146,6 +187,12 @@ def add_new_book(books):
     print(f"Successfully added '{title}' to the library.")
 
 def check_overdue_books(books):
+    """
+    Display all overdue books and calculate total fines.
+
+    Args:
+        books (list): The list of books to check.
+    """
     today = datetime.now().date()
     overdue_books = []
     total_fines = 0.0
@@ -168,6 +215,12 @@ def check_overdue_books(books):
         print("No overdue books found.")
 
 def edit_book(books):
+    """
+    Edit the details of an existing book.
+
+    Args:
+        books (list): The list of books.
+    """
     display_books(books)
     isbn = input("\nEnter ISBN of the book to edit: ").strip()
 
@@ -199,6 +252,12 @@ def edit_book(books):
     print("Book not found.")
 
 def delete_book(books):
+    """
+    Delete a book from the list if it's available (not checked out).
+
+    Args:
+        books (list): The list of books.
+    """
     display_books(books)
     isbn = input("\nEnter ISBN of the book to delete: ").strip()
 
@@ -218,6 +277,12 @@ def delete_book(books):
     print("Book not found.")
 
 def generate_report(books):
+    """
+    Generate CSV reports of current inventory and overdue books.
+
+    Args:
+        books (list): The list of books.
+    """
     timestamp = datetime.now().strftime("%Y%m%d_%H%M")
 
     with open(f"library_inventory_{timestamp}.csv", 'w', newline='') as f:
@@ -241,6 +306,9 @@ def generate_report(books):
     print(f"Generated: inventory and {'overdue' if overdue_books else 'no overdue'} reports")
 
 def main():
+    """
+    Main interactive loop for the Library Book Manager application.
+    """
     books = load_books()
     print("\n" + "=" * 50)
     print("LIBRARY BOOK MANAGER".center(50))
