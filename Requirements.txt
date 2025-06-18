@@ -1,0 +1,8 @@
+# Standard Python libraries used:
+# These are built-in and do not need installation:
+# - tkinter
+# - csv
+# - os
+# - datetime
+
+python>=3.7
