@@ -1,15 +1,18 @@
 import csv
 import os
 from datetime import datetime, timedelta
-from collections import defaultdict
+import tkinter as tk
+from tkinter import ttk, messagebox, simpledialog
 
 DATA_FILE = "library_books.csv"
 
 def load_books():
-    """
-    Load book data from a CSV file. If the file does not exist, create it with headers.
+    """Load all books from the CSV data file.
+    
     Returns:
-        list: A list of dictionaries representing the books.
+        list: A list of dictionaries where each dictionary represents a book
+        with keys: title, author, isbn, status, due_date, borrower.
+        Returns empty list if file doesn't exist (creates file in this case).
     """
     books = []
     if not os.path.exists(DATA_FILE):
@@ -25,11 +28,10 @@ def load_books():
     return books
 
 def save_books(books):
-    """
-    Save the list of books to the CSV file.
-
+    """Save the list of books to the CSV data file.
+    
     Args:
-        books (list): The list of books to save.
+        books (list): List of book dictionaries to be saved.
     """
     with open(DATA_FILE, 'w', newline='') as file:
         fieldnames = ["title", "author", "isbn", "status", "due_date", "borrower"]
@@ -37,162 +39,254 @@ def save_books(books):
         writer.writeheader()
         writer.writerows(books)
 
-def display_books(books):
-    """
-    Display the list of books in a formatted table. Marks overdue books with a warning symbol.
+def fill_tree(tree, books):
+    """Populate a Treeview widget with book data.
     
     Args:
-        books (list): The list of books to display.
+        tree (ttk.Treeview): The Treeview widget to populate.
+        books (list): List of book dictionaries to display in the tree.
     """
-    print("\nCurrent Library Inventory:")
-    print(f"{'Title':<30} {'Author':<20} {'ISBN':<15} {'Status':<12} {'Due Date':<12} {'Borrower':<10}")
-    print("-" * 100)
-
+    for row in tree.get_children():
+        tree.delete(row)
     today = datetime.now().date()
-
     for book in books:
-        due_date_str = book['due_date']
+        due_date_str = book['due_date'] if book['due_date'] else 'N/A'
         status = book['status']
-        borrower = book['borrower'] or 'N/A'
+        borrower = book['borrower'] if book['borrower'] else 'N/A'
 
         is_overdue = False
-        if status == 'checked out' and due_date_str:
-            due_date = datetime.strptime(due_date_str, '%Y-%m-%d').date()
-            is_overdue = due_date < today
+        if status == 'checked out' and book['due_date']:
+            due_date = datetime.strptime(book['due_date'], '%Y-%m-%d').date()
+            if due_date < today:
+                is_overdue = True
+                status = "OVERDUE"
+                display_title = "⚠️ " + book['title'][:28]
+            else:
+                display_title = book['title'][:30]
+        else:
+            display_title = book['title'][:30]
 
-        title = book['title'][:28]
-        if is_overdue:
-            title = f"⚠️ {title}"
-            status = "OVERDUE"
+        tree.insert('', 'end', values=(
+            display_title,
+            book['author'][:20],
+            book['isbn'],
+            status,
+            due_date_str,
+            borrower
+        ))
 
-        print(f"{title:<30} {book['author'][:18]:<20} {book['isbn']:<15} "
-              f"{status:<12} {due_date_str or 'N/A':<12} {borrower:<10}")
+def view_all_books():
+    """Display a window showing all books in the library with their current status."""
+    books = load_books()
+    win = tk.Toplevel(root)
+    win.title("View All Books")
+    win.geometry("850x400")
 
-def search_books(books):
-    """
-    Search for books by title, author, or ISBN.
+    cols = ("Title", "Author", "ISBN", "Status", "Due Date", "Borrower")
+    tree = ttk.Treeview(win, columns=cols, show='headings')
+    for col in cols:
+        tree.heading(col, text=col)
+        tree.column(col, width=120)
+    tree.pack(expand=True, fill='both')
 
-    Args:
-        books (list): The list of books to search within.
-    """
-    print("\nSearch Options:")
-    print("1. By Title")
-    print("2. By Author")
-    print("3. By ISBN")
+    fill_tree(tree, books)
 
-    choice = input("Choose search type (1-3): ").strip()
-    term = input("Enter search term: ").lower()
+def add_new_book():
+    """Display a form to add a new book to the library collection."""
+    def submit():
+        """Validate and submit new book data to be added to the library."""
+        title = ent_title.get().strip()
+        author = ent_author.get().strip()
+        isbn = ent_isbn.get().strip()
 
-    results = []
-    for book in books:
-        if choice == "1" and term in book['title'].lower():
-            results.append(book)
-        elif choice == "2" and term in book['author'].lower():
-            results.append(book)
-        elif choice == "3" and term in book['isbn'].lower():
-            results.append(book)
+        if not title or not author:
+            messagebox.showerror("Input Error", "Title and author cannot be empty.")
+            return
+        if len(isbn) != 13 or not isbn.isdigit():
+            messagebox.showerror("Input Error", "ISBN must be exactly 13 digits.")
+            return
 
-    if results:
-        print(f"\nFound {len(results)} matching book(s):")
-        display_books(results)
-    else:
-        print("No matching books found.")
+        books = load_books()
+        if any(book['isbn'] == isbn for book in books):
+            messagebox.showerror("Input Error", "A book with this ISBN already exists.")
+            return
 
-def check_out_book(books):
-    """
-    Check out a book to a borrower and assign a due date.
+        new_book = {
+            'title': title,
+            'author': author,
+            'isbn': isbn,
+            'status': 'available',
+            'due_date': '',
+            'borrower': ''
+        }
+        books.append(new_book)
+        save_books(books)
+        messagebox.showinfo("Success", f"'{title}' added to the library.")
+        win.destroy()
 
-    Args:
-        books (list): The list of books.
-    """
-    display_books(books)
-    isbn = input("\nEnter ISBN of the book to check out: ").strip()
-    borrower = input("Enter borrower name: ").strip()
+    win = tk.Toplevel(root)
+    win.title("Add New Book")
+    win.geometry("350x200")
 
-    for book in books:
-        if book['isbn'] == isbn:
-            if book['status'] == 'available':
+    tk.Label(win, text="Title:").pack(pady=5)
+    ent_title = tk.Entry(win, width=40)
+    ent_title.pack()
+
+    tk.Label(win, text="Author:").pack(pady=5)
+    ent_author = tk.Entry(win, width=40)
+    ent_author.pack()
+
+    tk.Label(win, text="ISBN (13 digits):").pack(pady=5)
+    ent_isbn = tk.Entry(win, width=40)
+    ent_isbn.pack()
+
+    tk.Button(win, text="Add Book", command=submit).pack(pady=10)
+
+def check_out_book():
+    """Display interface for checking out available books to borrowers."""
+    books = load_books()
+    available_books = [b for b in books if b['status'] == 'available']
+
+    if not available_books:
+        messagebox.showinfo("Info", "No available books to check out.")
+        return
+
+    def submit():
+        """Process book checkout with validation of selected book and borrower name."""
+        selected = tree.selection()
+        if not selected:
+            messagebox.showerror("Error", "Select a book to check out.")
+            return
+        borrower = ent_borrower.get().strip()
+        if not borrower:
+            messagebox.showerror("Error", "Enter borrower name.")
+            return
+
+        isbn = tree.item(selected[0])['values'][2]
+        for book in books:
+            if book['isbn'] == isbn:
                 book['status'] = 'checked out'
                 book['due_date'] = (datetime.now() + timedelta(days=14)).strftime('%Y-%m-%d')
                 book['borrower'] = borrower
                 save_books(books)
-                print(f"Successfully checked out '{book['title']}' to {borrower}.")
-            else:
-                print("Book is already checked out.")
-            return
+                messagebox.showinfo("Success", f"Checked out '{book['title']}' to {borrower}.")
+                win.destroy()
+                return
 
-    print("Book not found.")
+    win = tk.Toplevel(root)
+    win.title("Check Out Book")
+    win.geometry("800x400")
 
-def return_book(books):
-    """
-    Return a checked-out book and mark it as available.
+    cols = ("Title", "Author", "ISBN", "Status", "Due Date", "Borrower")
+    tree = ttk.Treeview(win, columns=cols, show='headings')
+    for col in cols:
+        tree.heading(col, text=col)
+        tree.column(col, width=120)
+    tree.pack(expand=True, fill='both')
 
-    Args:
-        books (list): The list of books.
-    """
+    fill_tree(tree, available_books)
+
+    tk.Label(win, text="Borrower Name:").pack(pady=5)
+    ent_borrower = tk.Entry(win, width=40)
+    ent_borrower.pack()
+
+    tk.Button(win, text="Check Out", command=submit).pack(pady=10)
+
+def return_book():
+    """Display interface for returning checked out books to the library."""
+    books = load_books()
     checked_out = [b for b in books if b['status'] == 'checked out']
+
     if not checked_out:
-        print("No books are currently checked out.")
+        messagebox.showinfo("Info", "No books are currently checked out.")
         return
 
-    display_books(checked_out)
-    isbn = input("\nEnter ISBN of the book to return: ").strip()
-
-    for book in books:
-        if book['isbn'] == isbn and book['status'] == 'checked out':
-            book['status'] = 'available'
-            book['due_date'] = ''
-            book['borrower'] = ''
-            save_books(books)
-            print(f"Successfully returned '{book['title']}'.")
+    def submit():
+        """Process book return for the selected book."""
+        selected = tree.selection()
+        if not selected:
+            messagebox.showerror("Error", "Select a book to return.")
             return
 
-    print("Book not found or already available.")
+        isbn = tree.item(selected[0])['values'][2]
+        for book in books:
+            if book['isbn'] == isbn and book['status'] == 'checked out':
+                book['status'] = 'available'
+                book['due_date'] = ''
+                book['borrower'] = ''
+                save_books(books)
+                messagebox.showinfo("Success", f"Returned '{book['title']}'.")
+                win.destroy()
+                return
 
-def add_new_book(books):
-    """
-    Add a new book to the library after validating input.
+    win = tk.Toplevel(root)
+    win.title("Return Book")
+    win.geometry("800x400")
 
-    Args:
-        books (list): The current list of books.
-    """
-    print("\nAdd New Book")
-    title = input("Enter book title: ").strip()
-    author = input("Enter author name: ").strip()
-    isbn = input("Enter ISBN (13 digits): ").strip()
+    cols = ("Title", "Author", "ISBN", "Status", "Due Date", "Borrower")
+    tree = ttk.Treeview(win, columns=cols, show='headings')
+    for col in cols:
+        tree.heading(col, text=col)
+        tree.column(col, width=120)
+    tree.pack(expand=True, fill='both')
 
-    if not title or not author:
-        print("Error: Title and author cannot be empty.")
-        return
+    fill_tree(tree, checked_out)
 
-    if len(isbn) != 13 or not isbn.isdigit():
-        print("Error: ISBN must be 13 digits.")
-        return
+    tk.Button(win, text="Return Book", command=submit).pack(pady=10)
 
-    if any(book['isbn'] == isbn for book in books):
-        print("Error: A book with this ISBN already exists.")
-        return
+def search_books():
+    """Display search interface to find books by title, author, or ISBN."""
+    books = load_books()
 
-    new_book = {
-        'title': title,
-        'author': author,
-        'isbn': isbn,
-        'status': 'available',
-        'due_date': '',
-        'borrower': ''
-    }
+    def do_search():
+        """Execute search based on user's criteria and display results."""
+        term = ent_search.get().lower()
+        choice = var_search.get()
+        if not term:
+            messagebox.showerror("Error", "Enter a search term.")
+            return
 
-    books.append(new_book)
-    save_books(books)
-    print(f"Successfully added '{title}' to the library.")
+        results = []
+        for book in books:
+            if choice == "Title" and term in book['title'].lower():
+                results.append(book)
+            elif choice == "Author" and term in book['author'].lower():
+                results.append(book)
+            elif choice == "ISBN" and term in book['isbn'].lower():
+                results.append(book)
 
-def check_overdue_books(books):
-    """
-    Display all overdue books and calculate total fines.
+        fill_tree(tree, results)
+        lbl_result.config(text=f"{len(results)} result(s) found.")
 
-    Args:
-        books (list): The list of books to check.
-    """
+    win = tk.Toplevel(root)
+    win.title("Search Books")
+    win.geometry("850x500")
+
+    tk.Label(win, text="Search by:").pack(pady=5)
+    var_search = tk.StringVar(value="Title")
+    frame = tk.Frame(win)
+    frame.pack()
+    for opt in ["Title", "Author", "ISBN"]:
+        tk.Radiobutton(frame, text=opt, variable=var_search, value=opt).pack(side='left')
+
+    ent_search = tk.Entry(win, width=50)
+    ent_search.pack(pady=5)
+
+    tk.Button(win, text="Search", command=do_search).pack()
+
+    cols = ("Title", "Author", "ISBN", "Status", "Due Date", "Borrower")
+    tree = ttk.Treeview(win, columns=cols, show='headings')
+    for col in cols:
+        tree.heading(col, text=col)
+        tree.column(col, width=120)
+    tree.pack(expand=True, fill='both')
+
+    lbl_result = tk.Label(win, text="")
+    lbl_result.pack(pady=5)
+
+def check_overdue_books():
+    """Display all overdue books with calculated fines."""
+    books = load_books()
     today = datetime.now().date()
     overdue_books = []
     total_fines = 0.0
@@ -204,154 +298,182 @@ def check_overdue_books(books):
                 days_overdue = (today - due_date).days
                 fine = days_overdue * 0.50
                 total_fines += fine
-                book['fine'] = f"${fine:.2f}"
                 overdue_books.append(book)
 
-    if overdue_books:
-        print("\nOverdue Books (Fines Calculated at $0.50/day):")
-        display_books(overdue_books)
-        print(f"\nTotal Fines Due: ${total_fines:.2f}")
-    else:
-        print("No overdue books found.")
+    if not overdue_books:
+        messagebox.showinfo("No Overdue Books", "No overdue books found.")
+        return
 
-def edit_book(books):
-    """
-    Edit the details of an existing book.
+    win = tk.Toplevel(root)
+    win.title("Overdue Books and Fines")
+    win.geometry("850x400")
 
-    Args:
-        books (list): The list of books.
-    """
-    display_books(books)
-    isbn = input("\nEnter ISBN of the book to edit: ").strip()
+    cols = ("Title", "Author", "ISBN", "Status", "Due Date", "Borrower", "Fine")
+    tree = ttk.Treeview(win, columns=cols, show='headings')
+    for col in cols:
+        tree.heading(col, text=col)
+        tree.column(col, width=110)
+    tree.pack(expand=True, fill='both')
 
-    for book in books:
-        if book['isbn'] == isbn:
-            print(f"\nEditing: {book['title']}")
-            print("Leave field blank to keep current value")
+    for book in overdue_books:
+        due_date = datetime.strptime(book['due_date'], '%Y-%m-%d').date()
+        days_overdue = (today - due_date).days
+        fine = days_overdue * 0.50
+        display_title = "⚠️ " + book['title'][:28]
 
-            new_title = input(f"Title [{book['title']}]: ").strip()
-            new_author = input(f"Author [{book['author']}]: ").strip()
-            new_isbn = input(f"ISBN [{book['isbn']}]: ").strip()
+        tree.insert('', 'end', values=(
+            display_title,
+            book['author'][:20],
+            book['isbn'],
+            "OVERDUE",
+            book['due_date'],
+            book['borrower'],
+            f"${fine:.2f}"
+        ))
 
-            if new_title:
-                book['title'] = new_title
-            if new_author:
-                book['author'] = new_author
-            if new_isbn:
-                if len(new_isbn) != 13 or not new_isbn.isdigit():
-                    print("Error: ISBN must be 13 digits. Not updated.")
-                elif any(b['isbn'] == new_isbn for b in books if b != book):
-                    print("Error: ISBN already exists. Not updated.")
-                else:
-                    book['isbn'] = new_isbn
+    lbl = tk.Label(win, text=f"Total Fines Due: ${total_fines:.2f}", font=("Arial", 12, "bold"))
+    lbl.pack(pady=10)
 
-            save_books(books)
-            print("Book updated successfully.")
+def edit_book():
+    """Display interface for editing book details (title, author, ISBN)."""
+    books = load_books()
+
+    def load_book_details(event):
+        """Load selected book's details into the edit form."""
+        selected = tree.selection()
+        if not selected:
+            return
+        isbn = tree.item(selected[0])['values'][2]
+        for book in books:
+            if book['isbn'] == isbn:
+                ent_title.delete(0, tk.END)
+                ent_title.insert(0, book['title'])
+                ent_author.delete(0, tk.END)
+                ent_author.insert(0, book['author'])
+                ent_isbn.delete(0, tk.END)
+                ent_isbn.insert(0, book['isbn'])
+                current_isbn.set(isbn)
+                break
+
+    def submit():
+        """Validate and save edited book details."""
+        original_isbn = current_isbn.get()
+        new_title = ent_title.get().strip()
+        new_author = ent_author.get().strip()
+        new_isbn_val = ent_isbn.get().strip()
+
+        if not new_title or not new_author:
+            messagebox.showerror("Error", "Title and Author cannot be empty.")
+            return
+        if len(new_isbn_val) != 13 or not new_isbn_val.isdigit():
+            messagebox.showerror("Error", "ISBN must be exactly 13 digits.")
+            return
+        if any(b['isbn'] == new_isbn_val and b['isbn'] != original_isbn for b in books):
+            messagebox.showerror("Error", "Another book with this ISBN exists.")
             return
 
-    print("Book not found.")
-
-def delete_book(books):
-    """
-    Delete a book from the list if it's available (not checked out).
-
-    Args:
-        books (list): The list of books.
-    """
-    display_books(books)
-    isbn = input("\nEnter ISBN of the book to delete: ").strip()
-
-    for i, book in enumerate(books):
-        if book['isbn'] == isbn:
-            if book['status'] == 'checked out':
-                print("Cannot delete: Book is currently checked out.")
+        for book in books:
+            if book['isbn'] == original_isbn:
+                book['title'] = new_title
+                book['author'] = new_author
+                book['isbn'] = new_isbn_val
+                save_books(books)
+                messagebox.showinfo("Success", "Book updated successfully.")
+                win.destroy()
                 return
 
-            confirm = input(f"Delete '{book['title']}'? (y/n): ").lower()
-            if confirm == 'y':
-                del books[i]
-                save_books(books)
-                print("Book deleted successfully.")
-            return
+    win = tk.Toplevel(root)
+    win.title("Edit Book")
+    win.geometry("400x250")
 
-    print("Book not found.")
+    cols = ("Title", "Author", "ISBN", "Status", "Due Date", "Borrower")
+    tree = ttk.Treeview(win, columns=cols, show='headings', height=6)
+    for col in cols:
+        tree.heading(col, text=col)
+        tree.column(col, width=100)
+    tree.pack()
 
-def generate_report(books):
-    """
-    Generate CSV reports of current inventory and overdue books.
+    fill_tree(tree, books)
+    tree.bind('<<TreeviewSelect>>', load_book_details)
 
-    Args:
-        books (list): The list of books.
-    """
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+    current_isbn = tk.StringVar()
 
-    with open(f"library_inventory_{timestamp}.csv", 'w', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=books[0].keys())
-        writer.writeheader()
-        writer.writerows(books)
+    frm = tk.Frame(win)
+    frm.pack(pady=10)
 
-    overdue_books = [
-        book for book in books
-        if book['status'] == 'checked out'
-        and book['due_date']
-        and datetime.strptime(book['due_date'], '%Y-%m-%d').date() < datetime.now().date()
-    ]
+    tk.Label(frm, text="Title:").grid(row=0, column=0, sticky='e')
+    ent_title = tk.Entry(frm, width=30)
+    ent_title.grid(row=0, column=1)
 
-    if overdue_books:
-        with open(f"overdue_books_{timestamp}.csv", 'w', newline='') as f:
-            writer = csv.DictWriter(f, fieldnames=overdue_books[0].keys())
-            writer.writeheader()
-            writer.writerows(overdue_books)
+    tk.Label(frm, text="Author:").grid(row=1, column=0, sticky='e')
+    ent_author = tk.Entry(frm, width=30)
+    ent_author.grid(row=1, column=1)
 
-    print(f"Generated: inventory and {'overdue' if overdue_books else 'no overdue'} reports")
+    tk.Label(frm, text="ISBN:").grid(row=2, column=0, sticky='e')
+    ent_isbn = tk.Entry(frm, width=30)
+    ent_isbn.grid(row=2, column=1)
 
-def main():
-    """
-    Main interactive loop for the Library Book Manager application.
-    """
+    tk.Button(win, text="Update Book", command=submit).pack(pady=10)
+
+def delete_book():
+    """Display interface for deleting books from the library collection."""
     books = load_books()
-    print("\n" + "=" * 50)
-    print("LIBRARY BOOK MANAGER".center(50))
-    print("=" * 50)
 
-    while True:
-        print("\nMAIN MENU:")
-        print("1. 📖 View All Books")
-        print("2. 🔍 Search Books")
-        print("3. 📝 Check Out Book")
-        print("4. ↩️ Return Book")
-        print("5. ➕ Add New Book")
-        print("6. ⚠️ View Overdue Books")
-        print("7. ✏️ Edit Book")
-        print("8. ❌ Delete Book")
-        print("9. 📊 Generate Reports")
-        print("0. 🚪 Exit")
+    def submit():
+        """Delete selected book after confirmation, with validation for checked out books."""
+        selected = tree.selection()
+        if not selected:
+            messagebox.showerror("Error", "Select a book to delete.")
+            return
+        isbn = tree.item(selected[0])['values'][2]
+        for i, book in enumerate(books):
+            if book['isbn'] == isbn:
+                if book['status'] == 'checked out':
+                    messagebox.showerror("Error", "Cannot delete a checked out book.")
+                    return
+                confirm = messagebox.askyesno("Confirm Delete", f"Delete '{book['title']}'?")
+                if confirm:
+                    del books[i]
+                    save_books(books)
+                    messagebox.showinfo("Success", "Book deleted.")
+                    win.destroy()
+                return
 
-        choice = input("\nEnter your choice (0-9): ").strip()
+    win = tk.Toplevel(root)
+    win.title("Delete Book")
+    win.geometry("800x400")
 
-        if choice == "1":
-            display_books(books)
-        elif choice == "2":
-            search_books(books)
-        elif choice == "3":
-            check_out_book(books)
-        elif choice == "4":
-            return_book(books)
-        elif choice == "5":
-            add_new_book(books)
-        elif choice == "6":
-            check_overdue_books(books)
-        elif choice == "7":
-            edit_book(books)
-        elif choice == "8":
-            delete_book(books)
-        elif choice == "9":
-            generate_report(books)
-        elif choice == "0":
-            print("\nThank you for using the Library Book Manager!")
-            break
-        else:
-            print("Invalid choice. Please try again.")
+    cols = ("Title", "Author", "ISBN", "Status", "Due Date", "Borrower")
+    tree = ttk.Treeview(win, columns=cols, show='headings')
+    for col in cols:
+        tree.heading(col, text=col)
+        tree.column(col, width=120)
+    tree.pack(expand=True, fill='both')
 
-if __name__ == "__main__":
-    main()
+    fill_tree(tree, books)
+
+    tk.Button(win, text="Delete Selected Book", command=submit).pack(pady=10)
+
+root = tk.Tk()
+root.title("Library Book Manager")
+root.geometry("400x500")
+
+title_lbl = tk.Label(root, text="📚 Library Book Manager", font=("Arial", 18, "bold"))
+title_lbl.pack(pady=20)
+
+btn_specs = [
+    ("📖 View All Books", view_all_books),
+    ("🔍 Search Books", search_books),
+    ("📝 Check Out Book", check_out_book),
+    ("↩️ Return Book", return_book),
+    ("➕ Add New Book", add_new_book),
+    ("⚠️ View Overdue Books & Fines", check_overdue_books),
+    ("✏️ Edit Book Details", edit_book),
+    ("❌ Delete Book", delete_book),
+    ("❎ Exit", root.quit),
+]
+
+for (text, func) in btn_specs:
+    tk.Button(root, text=text, font=("Arial", 12), width=30, command=func).pack(pady=5)
+
+root.mainloop()
