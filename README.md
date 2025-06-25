@@ -16,6 +16,10 @@ Built with `Tkinter`, this application offers a clean, user-friendly interface a
 - Tkinter (comes with Python standard library)
 - OS: Windows, macOS, or Linux (with Python GUI support)
 
+## Requirements
+
+This app uses only Python's standard library. No additional packages are required.
+
 ### Executing program
 
 1. Open a terminal or command prompt.

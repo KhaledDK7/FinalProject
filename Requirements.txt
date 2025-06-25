@@ -1,8 +1,2 @@
-# Standard Python libraries used:
-# These are built-in and do not need installation:
-# - tkinter
-# - csv
-# - os
-# - datetime
-
-python>=3.7
+# requirements.txt
+# No third-party packages required. Standard library only.
